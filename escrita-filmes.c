@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TAM 255;
-#define QTD_FILMES 30;
+#define TAM 255
+#define QTD_FILMES 30
 
 
 // uma struct de Filmes
@@ -11,7 +11,7 @@ struct Filmes {
     char descricao[TAM];
     double duracao;
     int id;
-}
+};
 
 void preencherFilme(struct Filmes *f, int i);
 void lerStr(char str[], int tamMax);
@@ -22,7 +22,7 @@ int main() {
     int status;
     // preenchimento de todo vetor
     for(int i = 0; i < QTD_FILMES; i += 1) {
-        preencherFilme(filmes[i], i + 1);
+        preencherFilme(&filmes[i], i + 1);
     }
 
     arq = fopen("filmes.bin", "wb"); // criacao do arquivo
