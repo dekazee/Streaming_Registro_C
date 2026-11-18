@@ -5,12 +5,7 @@
 
 // Criei os structs que serão utilizados
 
-struct Filmes {
-    char titulo[TAM];
-    char descricao[TAM];
-    double duracao;
-    int id;
-}
+
 
 struct Usuario {
     char nome[TAM];
@@ -20,5 +15,5 @@ struct Usuario {
 
 
 int main() {
-    
+
 }
