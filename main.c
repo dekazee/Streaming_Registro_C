@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TAM 255;
+#define TAM 255
 
 // Criei os structs que serão utilizados
 
