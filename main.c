@@ -31,14 +31,14 @@ int main() {
     struct Usuario usuario1, lista;
     int status, decisao = -1, times, statusLista, id;
     arq = fopen("filmes.bin", "r+b");
-    arqfav = fopen("filmesFav.bin", "r+b"); // ele cria o filmesFav.bin
-    statusLista = fread(&lista, sizeof(struct Usuario), 1, arqfav);
+    arqfav = fopen("filmesFav.bin", "r+b"); // ele abre o filmesFav.bin
+    statusLista = fread(&lista, sizeof(struct Usuario), 1, arqfav); // aqui ele ja joga na variavel lista oq ta no filmesFav
     if(statusLista != 1) {
         printf("Não foi possível abrir a Lista\n");
         printf("status = %d\n", statusLista);
     }
     // confiro se consigo abrir
-    times = lista.times;
+    times = lista.times; // a posição onde a lista termina. Sempre quando escrita-lista.c é executado isso vira 0
     if(arq == NULL) {
         printf("Não foi possível abrir o Catálogo");
     }
@@ -79,24 +79,24 @@ int main() {
                     scanf("%d", &id);
                 }
                 usuario1.filmesFavId[times] = id; // aqui eu coloco o id dentro dessa lista
-                times += 1;
+                times += 1; // aqui eu adiciono mais 1, pq na proxima vez de adicionar ele vai para a posição da frente
                 usuario1.times = times;
-                rewind(arqfav);    
+                rewind(arqfav); // reseta o ponteiro do arquivo 
                 statusLista = fwrite(&usuario1, sizeof(struct Usuario), 1, arqfav);
-                fclose(arqfav);
+                fclose(arqfav); // fecha o arquivo(nao sei se precisa, mas funcionou assim ent deixa ai)
                 if(statusLista != 1) {
-                    printf("Não foi possível adicionar esse filme a lista\n");
+                    printf("Não foi possível adicionar esse filme a lista\n"); // se der diferente de um, significa que o ponteiro nao foi pra posicao 1 do arquivo
                 } else {
-                    arqfav = fopen("filmesFav.bin", "r+b");
-                    printf("status = %d\n", statusLista);
+                    arqfav = fopen("filmesFav.bin", "r+b"); // abro o arquivo dnv
+                    printf("status = %d\n", statusLista); // ele mostra 1 se deu tudo certo
                     printf("Filme adicionado na lista\n");
-                    rewind(arqfav);
-                    statusLista = fread(&lista, sizeof(struct Usuario), 1, arqfav); // aqui a gente joga os arquivos dnv na lista, acho q tbm vou mudar isso para colocar no usuario
+                    rewind(arqfav); // reseta o ponteiro para dnv
+                    statusLista = fread(&lista, sizeof(struct Usuario), 1, arqfav); // aqui a gente joga os arquivos dnv na lista
                     if(statusLista != 1) {
-                        printf("Não foi possível abrir a Lista\n");
+                        printf("Não foi possível abrir a Lista\n"); // aqui é se o ponteiro nao chegar la dnv
                         printf("status = %d\n", statusLista);
                     } else {
-                        printf("%s adicionado\n", filmes[lista.filmesFavId[times-1] - 1].titulo);
+                        printf("%s adicionado\n", filmes[lista.filmesFavId[times-1] - 1].titulo); // aqui mostra exatamente o filme que foi adicionado(ja que os ids começam do 1 e vai ate o 30)
                     }
                 }
             }
@@ -160,7 +160,7 @@ char retornarNomePorId(struct Filmes f[], int id) {
 void mostrarListaFav(struct Filmes f[], struct Usuario l, int times) {
     int i, j;
     if(times == 0) {
-        printf("Não a filmes na lista de favoritos\n");
+        printf("Não a filmes na lista de favoritos\n"); // caso o arquivo foi resetado recentemente e o usuario apertar no 3, vai aparecer isso
     } else {
         for (i = 0; i < FILMES_FAV; i += 1) {
             for(j = 0; j < times; j += 1) {
