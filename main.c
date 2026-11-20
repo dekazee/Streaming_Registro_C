@@ -106,7 +106,7 @@ int main() {
             mostrarListaFav(filmes, lista, times); // mostra tudo que ta na lista fav
         } 
         else if(decisao == 4) {
-
+            // aqui é onde estará a remoção
         } else {
             printf("\nFim do programa\n");
             fclose(arq);
