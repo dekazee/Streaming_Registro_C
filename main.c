@@ -23,10 +23,12 @@ void lerStr(char str[], int tamMax);
 void mostrarCatalogo(struct Filmes f[]);
 //char retornarNomePorId(struct Filmes f[], int id);
 void mostrarListaFav(struct Filmes f[], struct Usuario l, int times);
+void atribuiVarCopiaArq(struct Usuario *l, FILE **afav, FILE **afavcpy, int id, int *qtd);
 
 int main() {
     FILE *arq;
     FILE *arqfav;
+    FILE *arqCpy;
     struct Filmes filmes[30]; // é onde o filmes.bin vai ir
     struct Usuario usuario1, lista;
     int status, decisao = -1, times, statusLista, id;
@@ -105,8 +107,13 @@ int main() {
         else if(decisao == 3) {
             mostrarListaFav(filmes, lista, times); // mostra tudo que ta na lista fav
         } 
-        else if(decisao == 4) {
-            // aqui é onde estará a remoção
+        else if (decisao == 4) {
+
+            printf("Qual filme remover da lista?\n");
+            printf("Digite o ID do filme:\n");
+            scanf("%d", &id);
+            atribuiVarCopiaArq(&lista, &arqfav, &arqCpy, id, &times);
+
         } else {
             printf("\nFim do programa\n");
             fclose(arq);
@@ -176,3 +183,51 @@ void mostrarListaFav(struct Filmes f[], struct Usuario l, int times) {
     }
 }
 
+void atribuiVarCopiaArq(struct Usuario *l, FILE **afav, FILE **afavcpy, int id, int *qtd) {
+    struct Usuario lido;
+    int status1, status2;
+
+    *afav = fopen("filmesFav.bin", "rb");
+    *afavcpy = fopen("temp.bin", "wb");
+
+    if (*afav == NULL || *afavcpy == NULL) {
+        printf("Um dos arquivos não conseguiu ser acessado! Na função atribuiVarCopiaArq!\n");
+        if (*afav != NULL) fclose(*afav);
+        if (*afavcpy != NULL) fclose(*afavcpy);
+        return;
+    }
+
+    while ((status1 = fread(&lido, sizeof(struct Usuario), 1, *afav)) == 1) {
+        struct Usuario copia = lido;
+        int novaQtd = 0;
+
+        for (int i = 0; i < *qtd; i++) {
+            if (lido.filmesFavId[i] != id) {
+                copia.filmesFavId[novaQtd] = lido.filmesFavId[i];
+                novaQtd++;
+            }
+        }
+        for (int i = novaQtd; i < FILMES_FAV; i++) {
+            copia.filmesFavId[i] = 0;
+        }
+
+        status2 = fwrite(&copia, sizeof(struct Usuario), 1, *afavcpy);
+        if (status2 != 1) {
+            printf("Não foi possível escrever no arquivo cópia! Na função atribuiVarCopiaArq!\n");
+            fclose(*afav);
+            fclose(*afavcpy);
+            remove("temp.bin");
+            return;
+        }
+
+        // Atualiza a variável da memória e a quantidade de favoritos
+        *l = copia;
+        *qtd = novaQtd;
+    }
+
+    fclose(*afav);
+    fclose(*afavcpy);
+
+    remove("filmesFav.bin");
+    rename("temp.bin", "filmesFav.bin");
+}
