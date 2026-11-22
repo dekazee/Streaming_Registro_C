@@ -81,7 +81,7 @@ int main() {
                     scanf("%d", &id);
                 }
                 if(filmeFavExiste(id, lista, times) != -1) {
-                    printf("Esse filme já está na lista");
+                    printf("Esse filme já está na lista\n");
                     statusLista = -1;
                 } else {
                     lista.filmesFavId[times] = id; // aqui eu coloco o id dentro dessa lista
@@ -93,8 +93,6 @@ int main() {
                 } // fecha o arquivo(nao sei se precisa, mas funcionou assim ent deixa ai)
                 if(statusLista != 1) {
                     printf("Não foi possível adicionar esse filme a lista\n");
-                    printf("status = %d | arqfav = %p\n", statusLista, (void*)arqfav);
-                    perror("Detalhe do sistema"); // se der diferente de um, significa que o ponteiro nao foi pra posicao 1 do arquivo
                 } else {
                     arqfav = fopen("filmesFav.bin", "r+b"); // abro o arquivo dnv
                     printf("status = %d\n", statusLista); // ele mostra 1 se deu tudo certo
@@ -250,4 +248,13 @@ int atribuiVarCopiaArq(struct Usuario *l, FILE **afav, int id, int *qtd) {
 
     *afav = fopen("filmesFav.bin", "r+b");
     return removeu;
+}
+
+int filmeFavExiste(int id, struct Usuario u, int times) {
+    for (int i = 0; i < times && i < FILMES_FAV; i++) {
+        if (u.filmesFavId[i] == id) {
+            return i;
+        }
+    }
+    return -1;
 }
