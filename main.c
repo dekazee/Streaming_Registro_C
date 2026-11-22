@@ -23,15 +23,15 @@ void lerStr(char str[], int tamMax);
 void mostrarCatalogo(struct Filmes f[]);
 //char retornarNomePorId(struct Filmes f[], int id);
 void mostrarListaFav(struct Filmes f[], struct Usuario l, int times);
-void atribuiVarCopiaArq(struct Usuario *l, FILE **afav, FILE **afavcpy, int id, int *qtd);
+int atribuiVarCopiaArq(struct Usuario *l, FILE **afav, int id, int *qtd);
+int filmeFavExiste(int id, struct Usuario u, int times);
 
 int main() {
     FILE *arq;
     FILE *arqfav;
-    FILE *arqCpy;
     struct Filmes filmes[30]; // é onde o filmes.bin vai ir
     struct Usuario usuario1, lista;
-    int status, decisao = -1, times, statusLista, id;
+    int status, decisao = -1, times, statusLista, id, removed = 0;
     arq = fopen("filmes.bin", "r+b");
     arqfav = fopen("filmesFav.bin", "r+b"); // ele abre o filmesFav.bin
     statusLista = fread(&lista, sizeof(struct Usuario), 1, arqfav); // aqui ele ja joga na variavel lista oq ta no filmesFav
@@ -80,14 +80,21 @@ int main() {
                     printf("Digite entre 1 e 30: \n");
                     scanf("%d", &id);
                 }
-                usuario1.filmesFavId[times] = id; // aqui eu coloco o id dentro dessa lista
-                times += 1; // aqui eu adiciono mais 1, pq na proxima vez de adicionar ele vai para a posição da frente
-                usuario1.times = times;
-                rewind(arqfav); // reseta o ponteiro do arquivo 
-                statusLista = fwrite(&usuario1, sizeof(struct Usuario), 1, arqfav);
-                fclose(arqfav); // fecha o arquivo(nao sei se precisa, mas funcionou assim ent deixa ai)
+                if(filmeFavExiste(id, lista, times) != -1) {
+                    printf("Esse filme já está na lista");
+                    statusLista = -1;
+                } else {
+                    lista.filmesFavId[times] = id; // aqui eu coloco o id dentro dessa lista
+                    times += 1; // aqui eu adiciono mais 1, pq na proxima vez de adicionar ele vai para a posição da frente
+                    lista.times = times;
+                    rewind(arqfav); // reseta o ponteiro do arquivo 
+                    statusLista = fwrite(&lista, sizeof(struct Usuario), 1, arqfav);
+                    fclose(arqfav);
+                } // fecha o arquivo(nao sei se precisa, mas funcionou assim ent deixa ai)
                 if(statusLista != 1) {
-                    printf("Não foi possível adicionar esse filme a lista\n"); // se der diferente de um, significa que o ponteiro nao foi pra posicao 1 do arquivo
+                    printf("Não foi possível adicionar esse filme a lista\n");
+                    printf("status = %d | arqfav = %p\n", statusLista, (void*)arqfav);
+                    perror("Detalhe do sistema"); // se der diferente de um, significa que o ponteiro nao foi pra posicao 1 do arquivo
                 } else {
                     arqfav = fopen("filmesFav.bin", "r+b"); // abro o arquivo dnv
                     printf("status = %d\n", statusLista); // ele mostra 1 se deu tudo certo
@@ -106,15 +113,19 @@ int main() {
         }
         else if(decisao == 3) {
             mostrarListaFav(filmes, lista, times); // mostra tudo que ta na lista fav
-        } 
+        }  
         else if (decisao == 4) {
-
             printf("Qual filme remover da lista?\n");
             printf("Digite o ID do filme:\n");
             scanf("%d", &id);
-            atribuiVarCopiaArq(&lista, &arqfav, &arqCpy, id, &times);
 
-        } else {
+            if (atribuiVarCopiaArq(&lista, &arqfav, id, &times)) {
+                printf("Filme removido dos favoritos!\n");
+            } else {
+                printf("Esse filme não estava na lista de favoritos.\n");
+            }
+        }
+        else {
             printf("\nFim do programa\n");
             fclose(arq);
             fclose(arqfav);
@@ -183,51 +194,60 @@ void mostrarListaFav(struct Filmes f[], struct Usuario l, int times) {
     }
 }
 
-void atribuiVarCopiaArq(struct Usuario *l, FILE **afav, FILE **afavcpy, int id, int *qtd) {
+int atribuiVarCopiaArq(struct Usuario *l, FILE **afav, int id, int *qtd) {
     struct Usuario lido;
-    int status1, status2;
+    FILE *afavcpy = fopen("temp.bin", "wb");
+    int status1, status2, removeu = 0;
 
     *afav = fopen("filmesFav.bin", "rb");
-    *afavcpy = fopen("temp.bin", "wb");
 
-    if (*afav == NULL || *afavcpy == NULL) {
+    if (*afav == NULL || afavcpy == NULL) {
         printf("Um dos arquivos não conseguiu ser acessado! Na função atribuiVarCopiaArq!\n");
         if (*afav != NULL) fclose(*afav);
-        if (*afavcpy != NULL) fclose(*afavcpy);
-        return;
+        if (afavcpy != NULL) fclose(afavcpy);
+        *afav = NULL;
+        return 0;
     }
 
     while ((status1 = fread(&lido, sizeof(struct Usuario), 1, *afav)) == 1) {
         struct Usuario copia = lido;
         int novaQtd = 0;
 
-        for (int i = 0; i < *qtd; i++) {
+        for (int i = 0; i < lido.times && i < FILMES_FAV; i++) {
             if (lido.filmesFavId[i] != id) {
                 copia.filmesFavId[novaQtd] = lido.filmesFavId[i];
                 novaQtd++;
+            } else {
+                removeu = 1;
             }
         }
+
         for (int i = novaQtd; i < FILMES_FAV; i++) {
-            copia.filmesFavId[i] = 0;
+            copia.filmesFavId[i] = 99;
         }
 
-        status2 = fwrite(&copia, sizeof(struct Usuario), 1, *afavcpy);
+        copia.times = novaQtd;
+
+        status2 = fwrite(&copia, sizeof(struct Usuario), 1, afavcpy);
         if (status2 != 1) {
             printf("Não foi possível escrever no arquivo cópia! Na função atribuiVarCopiaArq!\n");
             fclose(*afav);
-            fclose(*afavcpy);
+            fclose(afavcpy);
             remove("temp.bin");
-            return;
+            *afav = NULL;
+            return 0;
         }
 
-        // Atualiza a variável da memória e a quantidade de favoritos
-        *l = copia;
-        *qtd = novaQtd;
+        if (l != NULL) *l = copia;
+        if (qtd != NULL) *qtd = novaQtd;
     }
 
     fclose(*afav);
-    fclose(*afavcpy);
+    fclose(afavcpy);
 
     remove("filmesFav.bin");
     rename("temp.bin", "filmesFav.bin");
+
+    *afav = fopen("filmesFav.bin", "r+b");
+    return removeu;
 }
