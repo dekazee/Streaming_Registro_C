@@ -11,6 +11,10 @@ struct Usuario {
     int times;
 };
 
+struct Admin {
+    char nome[TAM];
+};
+
 struct Filmes {
     char titulo[TAM];
     char descricao[TAM];
@@ -25,13 +29,17 @@ void mostrarCatalogo(struct Filmes f[]);
 void mostrarListaFav(struct Filmes f[], struct Usuario l, int times);
 int atribuiVarCopiaArq(struct Usuario *l, FILE **afav, int id, int *qtd);
 int filmeFavExiste(int id, struct Usuario u, int times);
-
+void adminOuUsuario(int *d);
+void criarAdmin(struct Admin *a);
+void preencherFilme(struct Filmes *f);
 int main() {
     FILE *arq;
     FILE *arqfav;
-    struct Filmes filmes[30]; // é onde o filmes.bin vai ir
+    struct Filmes filmes[30], filmeAdd; // é onde o filmes.bin vai ir
     struct Usuario usuario1, lista;
-    int status, decisao = -1, times, statusLista, id, removed = 0;
+    struct Admin adm;
+    int status, decisao = -1, times, statusLista, id, removed = 0, admUsuario;
+    char temp[10];
     arq = fopen("filmes.bin", "r+b");
     arqfav = fopen("filmesFav.bin", "r+b"); // ele abre o filmesFav.bin
     statusLista = fread(&lista, sizeof(struct Usuario), 1, arqfav); // aqui ele ja joga na variavel lista oq ta no filmesFav
@@ -49,89 +57,141 @@ int main() {
         printf("Catálogo incompleto\n"); 
         printf("%d filmes disponíveis\n", status);
     }
-    criarUsuario(&usuario1); // aqui so serve pra colocar um nome do usuario
-    //provavelmente a gente vai apagar essa variável, mas não agr
-    while(decisao != 0) {
-        printf("O que deseja fazer?\n");
-        printf("\n=========================\n");
-        printf("1- Ver catálogo de Filmes\n");
-        printf("2- Favoritar um Filme\n");
-        printf("3- Mostrar Lista de Favoritos\n");
-        printf("4- Remover um Filme dos Favoritos\n");
-        printf("5- Fechar Programa\n");
-        scanf("%d", &decisao);
-        while(decisao < 0 || decisao > 5) {
-            printf("Digite apenas os números indicados:\n");
+    adminOuUsuario(&admUsuario);
+    if(admUsuario == 1) {
+        criarUsuario(&usuario1); // aqui so serve pra colocar um nome do usuario
+        //provavelmente a gente vai apagar essa variável, mas não agr
+        while(decisao != 0) {
+            printf("O que deseja fazer?\n");
+            printf("\n=========================\n");
+            printf("1- Ver catálogo de Filmes\n");
+            printf("2- Favoritar um Filme\n");
+            printf("3- Mostrar Lista de Favoritos\n");
+            printf("4- Remover um Filme dos Favoritos\n");
+            printf("5- Fechar Programa\n");
             scanf("%d", &decisao);
-        }
-        
-        if(decisao == 1) { 
-            printf("Catálogo: \n");
-            mostrarCatalogo(filmes);
-        }
-        else if(decisao == 2) {
-            if( times >= 30 ) { // times serve pra impedir de adicionar filmes além da quantidade de filmes
-                printf("todos os filmes foram adicionados a lista de favoritos\n");
-            } else{
-                printf("Qual filme deseja adicionar a lista?\n");
-                printf("Digite o ID do filmes : ");
-                scanf("%d", &id);
-                while(id < 1 || id > 30) {
-                    printf("Digite entre 1 e 30: \n");
+            while(decisao < 0 || decisao > 5) {
+                printf("Digite apenas os números indicados:\n");
+                scanf("%d", &decisao);
+            }
+            
+            if(decisao == 1) { 
+                printf("Catálogo: \n");
+                mostrarCatalogo(filmes);
+            }
+            else if(decisao == 2) {
+                if( times >= 30 ) { // times serve pra impedir de adicionar filmes além da quantidade de filmes
+                    printf("todos os filmes foram adicionados a lista de favoritos\n");
+                } else{
+                    printf("Qual filme deseja adicionar a lista?\n");
+                    printf("Digite o ID do filmes : ");
                     scanf("%d", &id);
-                }
-                if(filmeFavExiste(id, lista, times) != -1) {
-                    printf("Esse filme já está na lista\n");
-                    statusLista = -1;
-                } else {
-                    lista.filmesFavId[times] = id; // aqui eu coloco o id dentro dessa lista
-                    times += 1; // aqui eu adiciono mais 1, pq na proxima vez de adicionar ele vai para a posição da frente
-                    lista.times = times;
-                    rewind(arqfav); // reseta o ponteiro do arquivo 
-                    statusLista = fwrite(&lista, sizeof(struct Usuario), 1, arqfav);
-                    fclose(arqfav);
-                } // fecha o arquivo(nao sei se precisa, mas funcionou assim ent deixa ai)
-                if(statusLista != 1) {
-                    printf("Não foi possível adicionar esse filme a lista\n");
-                } else {
-                    arqfav = fopen("filmesFav.bin", "r+b"); // abro o arquivo dnv
-                    printf("status = %d\n", statusLista); // ele mostra 1 se deu tudo certo
-                    printf("Filme adicionado na lista\n");
-                    rewind(arqfav); // reseta o ponteiro para dnv
-                    statusLista = fread(&lista, sizeof(struct Usuario), 1, arqfav); // aqui a gente joga os arquivos dnv na lista
-                    if(statusLista != 1) {
-                        printf("Não foi possível abrir a Lista\n"); // aqui é se o ponteiro nao chegar la dnv
-                        printf("status = %d\n", statusLista);
+                    while(id < 1 || id > 30) {
+                        printf("Digite entre 1 e 30: \n");
+                        scanf("%d", &id);
+                    }
+                    if(filmeFavExiste(id, lista, times) != -1) {
+                        printf("Esse filme já está na lista\n");
+                        statusLista = -1;
                     } else {
-                        printf("%s adicionado\n", filmes[lista.filmesFavId[times-1] - 1].titulo); // aqui mostra exatamente o filme que foi adicionado(ja que os ids começam do 1 e vai ate o 30)
+                        lista.filmesFavId[times] = id; // aqui eu coloco o id dentro dessa lista
+                        times += 1; // aqui eu adiciono mais 1, pq na proxima vez de adicionar ele vai para a posição da frente
+                        lista.times = times;
+                        rewind(arqfav); // reseta o ponteiro do arquivo 
+                        statusLista = fwrite(&lista, sizeof(struct Usuario), 1, arqfav);
+                        fclose(arqfav);
+                    } // fecha o arquivo(nao sei se precisa, mas funcionou assim ent deixa ai)
+                    if(statusLista != 1) {
+                        printf("Não foi possível adicionar esse filme a lista\n");
+                    } else {
+                        arqfav = fopen("filmesFav.bin", "r+b"); // abro o arquivo dnv
+                        printf("status = %d\n", statusLista); // ele mostra 1 se deu tudo certo
+                        printf("Filme adicionado na lista\n");
+                        rewind(arqfav); // reseta o ponteiro para dnv
+                        statusLista = fread(&lista, sizeof(struct Usuario), 1, arqfav); // aqui a gente joga os arquivos dnv na lista
+                        if(statusLista != 1) {
+                            printf("Não foi possível abrir a Lista\n"); // aqui é se o ponteiro nao chegar la dnv
+                            printf("status = %d\n", statusLista);
+                        } else {
+                            printf("%s adicionado\n", filmes[lista.filmesFavId[times-1] - 1].titulo); // aqui mostra exatamente o filme que foi adicionado(ja que os ids começam do 1 e vai ate o 30)
+                        }
                     }
                 }
+
+            }
+            else if(decisao == 3) {
+                mostrarListaFav(filmes, lista, times); // mostra tudo que ta na lista fav
+            }  
+            else if (decisao == 4) {
+                printf("Qual filme remover da lista?\n");
+                printf("Digite o ID do filme:\n");
+                scanf("%d", &id);
+
+                if (atribuiVarCopiaArq(&lista, &arqfav, id, &times)) {
+                    printf("Filme removido dos favoritos!\n");
+                } else {
+                    printf("Esse filme não estava na lista de favoritos.\n");
+                }
+            }
+            else {
+                printf("\nFim do programa\n");
+                fclose(arq);
+                fclose(arqfav);
+                decisao = 0;
             }
 
-        }
-        else if(decisao == 3) {
-            mostrarListaFav(filmes, lista, times); // mostra tudo que ta na lista fav
-        }  
-        else if (decisao == 4) {
-            printf("Qual filme remover da lista?\n");
-            printf("Digite o ID do filme:\n");
-            scanf("%d", &id);
-
-            if (atribuiVarCopiaArq(&lista, &arqfav, id, &times)) {
-                printf("Filme removido dos favoritos!\n");
-            } else {
-                printf("Esse filme não estava na lista de favoritos.\n");
+        } 
+    } else {
+        lerStr(temp, 10);
+        criarAdmin(&adm);
+        while(decisao != 0) {
+            printf("O que deseja fazer?\n");
+            printf("\n=========================\n");
+            printf("1- Ver catálogo de Filmes\n");
+            printf("2- Adicionar filme ao catálogo\n");
+            printf("4- Remover um Filme do Catálogo");
+            printf("5- Fechar Programa\n");
+            scanf("%d", &decisao);
+            while(decisao < 0 || decisao > 5) {
+                printf("Digite apenas os números indicados:\n");
+                scanf("%d", &decisao);
             }
-        }
-        else {
-            printf("\nFim do programa\n");
-            fclose(arq);
-            fclose(arqfav);
-            decisao = 0;
-        }
+        
+            if(decisao == 1) {
+                printf("Catálogo: \n");
+                mostrarCatalogo(filmes);
+            }
+            else if(decisao == 2) {
+                lerStr(temp, 10);
+                printf("Preencha as informações do filme: \n");
+                preencherFilme(&filmeAdd);
+                for(int i = 0; i < FILMES_FAV; i += 1) {
+                    if( filmes[i].id > FILMES_FAV) {
+                        filmeAdd.id = i + 1;
+                        id = i;
+                        printf("indice atual: %d\n", id);
+                        break;
+                    }
+                }
+                rewind(arq);
+                status = fwrite(&filmeAdd, sizeof(struct Filmes), id, arq);
+                if(status != id) {
+                    printf("Erro: %d", status);
+                    printf("Filme não adicionado\n");
+                }
+                fclose(arq);
+                arq = fopen("filmes.bin", "r+b");
 
+                rewind(arq);
+                status = fread(&filmes, sizeof(struct Filmes), FILMES_FAV, arq);
+                if(status < id) {
+                    printf("status: %d\n", status);
+                    printf("Erro\n");
+                }
+            }
+            
+        }
     }
-    
 
     return 0;
 
@@ -257,4 +317,31 @@ int filmeFavExiste(int id, struct Usuario u, int times) {
         }
     }
     return -1;
+}
+
+void adminOuUsuario(int *d) {
+    printf("Como deseja entrar?\n");
+    printf("1-Usuário\n");
+    printf("2-Admin\n");
+    scanf("%d", &(*d));
+    while(*d < 1 || *d > 2) {
+        printf("Digite apenas 1 ou 2");
+        scanf("%d", &(*d));
+    }
+}
+
+void criarAdmin(struct Admin *a) {
+    printf("Digite o nome do Admin: ");
+    lerStr(a->nome, TAM);
+}
+
+void preencherFilme(struct Filmes *f) {
+    char temp[10];
+    printf("Digite o nome do filme: ");
+    lerStr(f->titulo, TAM);
+    printf("Digite a descricao do filme: ");
+    lerStr(f->descricao, TAM);
+    printf("Qual a duração: ");
+    scanf("%lf", &f->duracao);
+    lerStr(temp, 10);
 }
