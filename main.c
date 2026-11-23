@@ -32,7 +32,7 @@ int filmeFavExiste(int id, struct Usuario u, int times);
 void adminOuUsuario(int *d);
 void criarAdmin(struct Admin *a);
 void preencherFilme(struct Filmes *f);
-int removerFilmePorId(struct Filmes f[], int id);
+int removerFilmePorId(FILE *arq,struct Filmes f[], int id);
 int main() {
     FILE *arq;
     FILE *arqfav;
@@ -192,13 +192,19 @@ int main() {
             } else if(decisao == 3) {
                 printf("Digite o id do filme que deseja remover:\n");
                 scanf("%d", &id);
-                status = removerFilmePorId(filmes, id);
+                status = removerFilmePorId(arq,filmes, id);
+                fread(&filmes, sizeof(struct Filmes), FILMES_FAV, arq);
                 if(status == 0) {
                     printf("Filme não foi removido\n");
                     printf("Erro\n");
                 } else {
                     printf("Filme removido com sucesso!\n");
                 }
+            } else {
+                printf("\nFim do programa\n");
+                fclose(arq);
+                fclose(arqfav);
+                decisao = 0;
             }
             
         }
@@ -366,43 +372,45 @@ void preencherFilme(struct Filmes *f) {
     lerStr(temp, 10);
 }
 
-int removerFilmePorId(struct Filmes f[], int id) {
-    struct Filmes copia[FILMES_FAV];
-    int status;
-    FILE *cpy = fopen("temp.bin", "w+b");
-    for(int i = 0; i < FILMES_FAV; i += 1) {
-        copia[i].titulo[0] = '\0';
-        copia[i].descricao[0] = '\0';
-        copia[i].duracao = 0;
-        copia[i].id = 99;
-    }
-    for(int i = 0; i < FILMES_FAV; i += 1) {
-        if(f[i].id != id && f[i].id <= 30) {
-            strcpy(copia[i].titulo, f[i].titulo);
-            strcpy(copia[i].descricao,f[i].descricao);
-            copia[i].duracao = f[i].duracao;
-            copia[i].id = f[i].id;
+int removerFilmePorId(FILE *arq, struct Filmes f[], int id) {
+    int pos = -1;
+
+    // 1. Procurar a posição do filme
+    for (int i = 0; i < FILMES_FAV; i++) {
+        if (f[i].id == id) {
+            pos = i;
+            break;
         }
     }
 
-    status = fwrite(&copia, sizeof(struct Filmes), FILMES_FAV, cpy);
-
-    if (status != FILMES_FAV) {
-        printf("Não foi possível escrever no arquivo cópia! Na função atribuiVarCopiaArq!\n");
-        fclose(cpy);
-        remove("temp.bin");
-        cpy = NULL;
+    // 2. Verificar se encontrou
+    if (pos == -1) {
+        printf("Filme nao encontrado!\n");
         return 0;
     }
 
-    fread(&f, sizeof(struct Filmes), FILMES_FAV, cpy);
+    // 3. Deslocar os filmes para a esquerda
+    for (int i = pos; i < FILMES_FAV - 1; i++) {
+        f[i] = f[i + 1];
+    }
 
+    // 4. Limpar a última posição
+    memset(&f[FILMES_FAV - 1], 0, sizeof(struct Filmes));
+    f[FILMES_FAV - 1].id = 99;
 
-    fclose(cpy);
+    // 5. Atualizar o arquivo binário
+    rewind(arq);
 
-    remove("filmes.bin");
-    rename("temp.bin", "filmes.bin");
+    size_t status = fwrite(f, sizeof(struct Filmes), FILMES_FAV, arq);
+
+    if (status != FILMES_FAV) {
+        printf("Erro ao atualizar arquivo!\n");
+        return 0;
+    }
+
+    fflush(arq);
+
+    printf("Filme removido com sucesso!\n");
 
     return 1;
-
 }
