@@ -22,8 +22,8 @@ int main() {
     int status;
     // preenchimento de todo vetor
     for(int i = 0; i < QTD_FILMES; i += 1) {
-        filmes[i].titulo[TAM] = "None";
-        filmes[i].descricao[TAM] = "None";
+        filmes[i].titulo[0] = '\0';
+        filmes[i].descricao[0] = '\0';
         filmes[i].duracao = 0;
         filmes[i].id = 99;
     }
