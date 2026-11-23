@@ -32,6 +32,7 @@ int filmeFavExiste(int id, struct Usuario u, int times);
 void adminOuUsuario(int *d);
 void criarAdmin(struct Admin *a);
 void preencherFilme(struct Filmes *f);
+int removerFilmePorId(struct Filmes f[], int id);
 int main() {
     FILE *arq;
     FILE *arqfav;
@@ -39,7 +40,7 @@ int main() {
     struct Usuario usuario1, lista;
     struct Admin adm;
     int status, decisao = -1, times, statusLista, id, removed = 0, admUsuario;
-    char temp[10];
+    char temp[10], filme[TAM];
     arq = fopen("filmes.bin", "r+b");
     arqfav = fopen("filmesFav.bin", "r+b"); // ele abre o filmesFav.bin
     statusLista = fread(&lista, sizeof(struct Usuario), 1, arqfav); // aqui ele ja joga na variavel lista oq ta no filmesFav
@@ -149,8 +150,8 @@ int main() {
             printf("\n=========================\n");
             printf("1- Ver catálogo de Filmes\n");
             printf("2- Adicionar filme ao catálogo\n");
-            printf("4- Remover um Filme do Catálogo");
-            printf("5- Fechar Programa\n");
+            printf("3- Remover um Filme do Catálogo\n");
+            printf("4- Fechar Programa\n");
             scanf("%d", &decisao);
             while(decisao < 0 || decisao > 5) {
                 printf("Digite apenas os números indicados:\n");
@@ -168,7 +169,7 @@ int main() {
                 for(int i = 0; i < FILMES_FAV; i += 1) {
                     if( filmes[i].id > FILMES_FAV) {
                         filmeAdd.id = i + 1;
-                        id = i;
+                        id = i+1;
                         printf("indice atual: %d\n", id);
                         break;
                     }
@@ -187,6 +188,16 @@ int main() {
                 if(status < id) {
                     printf("status: %d\n", status);
                     printf("Erro\n");
+                }
+            } else if(decisao == 3) {
+                printf("Digite o id do filme que deseja remover:\n");
+                scanf("%d", &id);
+                status = removerFilmePorId(filmes, id);
+                if(status == 0) {
+                    printf("Filme não foi removido\n");
+                    printf("Erro\n");
+                } else {
+                    printf("Filme removido com sucesso!\n");
                 }
             }
             
@@ -212,13 +223,22 @@ void lerStr(char str[], int tamMax) {
 }
 
 void mostrarCatalogo(struct Filmes f[]) {
-    for(int i = 0; i < FILMES_FAV; i += 1) {
+    int i;
+    int j = 0;
+    for(i = 0; i < FILMES_FAV; i += 1) {
+        if(f[i].id < FILMES_FAV) {
         printf("FILME %d\n", i + 1);
         printf("Nome: %s\n", f[i].titulo);
         printf("Descricao: %s\n", f[i].descricao);
         printf("Duracao: %.2lf\n", f[i].duracao);
         printf("ID: %d\n", f[i].id);
+        j += 1;
+        }
     }
+    if(j == 0) {
+        printf("Nenhum Filme no Catálogo\n");
+    }
+    
 
 }
 // Não sei oq fzr com essas funções
@@ -344,4 +364,45 @@ void preencherFilme(struct Filmes *f) {
     printf("Qual a duração: ");
     scanf("%lf", &f->duracao);
     lerStr(temp, 10);
+}
+
+int removerFilmePorId(struct Filmes f[], int id) {
+    struct Filmes copia[FILMES_FAV];
+    int status;
+    FILE *cpy = fopen("temp.bin", "w+b");
+    for(int i = 0; i < FILMES_FAV; i += 1) {
+        copia[i].titulo[0] = '\0';
+        copia[i].descricao[0] = '\0';
+        copia[i].duracao = 0;
+        copia[i].id = 99;
+    }
+    for(int i = 0; i < FILMES_FAV; i += 1) {
+        if(f[i].id != id && f[i].id <= 30) {
+            strcpy(copia[i].titulo, f[i].titulo);
+            strcpy(copia[i].descricao,f[i].descricao);
+            copia[i].duracao = f[i].duracao;
+            copia[i].id = f[i].id;
+        }
+    }
+
+    status = fwrite(&copia, sizeof(struct Filmes), FILMES_FAV, cpy);
+
+    if (status != FILMES_FAV) {
+        printf("Não foi possível escrever no arquivo cópia! Na função atribuiVarCopiaArq!\n");
+        fclose(cpy);
+        remove("temp.bin");
+        cpy = NULL;
+        return 0;
+    }
+
+    fread(&f, sizeof(struct Filmes), FILMES_FAV, cpy);
+
+
+    fclose(cpy);
+
+    remove("filmes.bin");
+    rename("temp.bin", "filmes.bin");
+
+    return 1;
+
 }
