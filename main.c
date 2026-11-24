@@ -167,7 +167,9 @@ int main() {
                 printf("Preencha as informações do filme: \n");
                 preencherFilme(&filmeAdd);
                 for(int i = 0; i < FILMES_FAV; i += 1) {
+                    printf("o indice %d tem o id de %d", i, filmes[i].id);
                     if( filmes[i].id > FILMES_FAV) {
+                        printf("id da posicao que é maior que 30 %d", filmes[i].id);
                         filmeAdd.id = i + 1;
                         id = i+1;
                         printf("indice atual: %d\n", id);
