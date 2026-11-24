@@ -415,7 +415,7 @@ int removerFilmePorId(FILE *arq, struct Filmes f[], int id) {
 
     int pos = -1;
 
-    // 1. Procurar o filme pelo ID
+    //Procurar o filme pelo ID
     for (int i = 0; i < FILMES_FAV; i++) {
         if (f[i].id == id) {
             pos = i;
@@ -423,25 +423,25 @@ int removerFilmePorId(FILE *arq, struct Filmes f[], int id) {
         }
     }
 
-    // 2. Verificar se encontrou (99 representa uma posicao vazia)
+    //Verificar se encontrou (99 representa uma posicao vazia)
     if (pos == -1 || id == 99) {
         printf("Filme nao encontrado!\n");
         return 0;
     }
 
-    // 3. Deslocar os filmes para a esquerda
+    //Deslocar os filmes para a esquerda
     for (int i = pos; i < FILMES_FAV - 1; i++) {
         f[i] = f[i + 1];
     }
 
-    // 4. Limpar a última posição
+    //Limpar a última posição
     memset(&f[FILMES_FAV - 1], 0, sizeof(struct Filmes));
     f[FILMES_FAV - 1].id = 99;
 
-    // Deixar os filmes em ordem crescente de ID
+    //Deixar os filmes em ordem crescente de ID
     ordenarCatalogo(f);
 
-    // 5. Atualizar o arquivo binário
+    //Atualizar o arquivo binário
     rewind(arq);
 
     size_t status = fwrite(f, sizeof(struct Filmes), FILMES_FAV, arq);
@@ -451,15 +451,8 @@ int removerFilmePorId(FILE *arq, struct Filmes f[], int id) {
         return 0;
     }
 
-    // 6. Garantir que os dados sejam gravados
+    //Garantir que os dados sejam gravados
     fflush(arq);
-
-    // 7. Mostrar o vetor atualizado
-    printf("\nFilmes apos remocao:\n");
-
-    for (int i = 0; i < FILMES_FAV; i++) {
-        printf("Posicao %d: ID %d\n", i, f[i].id);
-    }
 
     return 1;
 }
