@@ -33,13 +33,14 @@ void adminOuUsuario(int *d);
 void criarAdmin(struct Admin *a);
 void preencherFilme(struct Filmes *f);
 int removerFilmePorId(FILE *arq,struct Filmes f[], int id);
+void ordenarCatalogo(struct Filmes f[]);
 int main() {
     FILE *arq;
     FILE *arqfav;
     struct Filmes filmes[30], filmeAdd; // é onde o filmes.bin vai ir
     struct Usuario usuario1, lista;
     struct Admin adm;
-    int status, decisao = -1, times, statusLista, id, removed = 0, admUsuario;
+    int status, decisao = -1, times, statusLista, id, removed = 0, admUsuario, posFilme;
     char temp[10], filme[TAM];
     arq = fopen("filmes.bin", "r+b");
     arqfav = fopen("filmesFav.bin", "r+b"); // ele abre o filmesFav.bin
@@ -87,9 +88,22 @@ int main() {
                     printf("Qual filme deseja adicionar a lista?\n");
                     printf("Digite o ID do filmes : ");
                     scanf("%d", &id);
-                    while(id < 1 || id > 30) {
-                        printf("Digite entre 1 e 30: \n");
+                    posFilme = -1;
+                    for (int i = 0; i < FILMES_FAV; i++) {
+                        if (filmes[i].id == id && id != 99) {
+                            posFilme = i;
+                            break;
+                        }
+                    }
+                    while (posFilme == -1) {
+                        printf("ID nao encontrado. Digite um ID existente no catalogo: \n");
                         scanf("%d", &id);
+                        for (int i = 0; i < FILMES_FAV; i++) {
+                            if (filmes[i].id == id && id != 99) {
+                                posFilme = i;
+                                break;
+                            }
+                        }
                     }
                     if(filmeFavExiste(id, lista, times) != -1) {
                         printf("Esse filme já está na lista\n");
@@ -114,7 +128,7 @@ int main() {
                             printf("Não foi possível abrir a Lista\n"); // aqui é se o ponteiro nao chegar la dnv
                             printf("status = %d\n", statusLista);
                         } else {
-                            printf("%s adicionado\n", filmes[lista.filmesFavId[times-1] - 1].titulo); // aqui mostra exatamente o filme que foi adicionado(ja que os ids começam do 1 e vai ate o 30)
+                            printf("%s adicionado\n", filmes[posFilme].titulo);
                         }
                     }
                 }
@@ -163,39 +177,47 @@ int main() {
                 mostrarCatalogo(filmes);
             }
             else if(decisao == 2) {
-                lerStr(temp, 10);
-                printf("Preencha as informações do filme: \n");
-                preencherFilme(&filmeAdd);
-                for(int i = 0; i < FILMES_FAV; i += 1) {
-                    printf("o indice %d tem o id de %d", i, filmes[i].id);
-                    if( filmes[i].id > FILMES_FAV) {
-                        printf("id da posicao que é maior que 30 %d", filmes[i].id);
-                        filmeAdd.id = i + 1;
-                        id = i+1;
-                        printf("indice atual: %d\n", id);
-                        break;
+                int posLivre = -1;
+                int maiorId = 0;
+
+                // Procurar a primeira posicao vazia e o maior ID cadastrado
+                for (int i = 0; i < FILMES_FAV; i++) {
+                    if (filmes[i].id == 99) {
+                        if (posLivre == -1) posLivre = i;
+                    } else if (filmes[i].id > maiorId) {
+                        maiorId = filmes[i].id;
                     }
                 }
-                rewind(arq);
-                status = fwrite(&filmeAdd, sizeof(struct Filmes), id, arq);
-                if(status != id) {
-                    printf("Erro: %d", status);
-                    printf("Filme não adicionado\n");
-                }
-                fclose(arq);
-                arq = fopen("filmes.bin", "r+b");
 
-                rewind(arq);
-                status = fread(&filmes, sizeof(struct Filmes), FILMES_FAV, arq);
-                if(status < id) {
-                    printf("status: %d\n", status);
-                    printf("Erro\n");
+                if (posLivre == -1) {
+                    printf("Catalogo cheio!\n");
+                } else {
+                    lerStr(temp, 10);
+                    printf("Preencha as informacoes do filme: \n");
+                    preencherFilme(&filmeAdd);
+
+                    // O novo ID e o maior ID existente + 1
+                    filmeAdd.id = maiorId + 1;
+                    if (filmeAdd.id == 99) filmeAdd.id = 100; // 99 fica reservado para posicoes vazias
+
+                    filmes[posLivre] = filmeAdd;
+                    ordenarCatalogo(filmes);
+
+                    // Gravar o vetor inteiro, sem repetir o mesmo registro
+                    rewind(arq);
+                    status = fwrite(filmes, sizeof(struct Filmes), FILMES_FAV, arq);
+                    fflush(arq);
+
+                    if (status != FILMES_FAV) {
+                        printf("Erro ao gravar o catalogo.\n");
+                    } else {
+                        printf("Filme adicionado ao catalogo! ID: %d\n", filmeAdd.id);
+                    }
                 }
             } else if(decisao == 3) {
                 printf("Digite o id do filme que deseja remover:\n");
                 scanf("%d", &id);
-                status = removerFilmePorId(arq,filmes, id);
-                fread(&filmes, sizeof(struct Filmes), FILMES_FAV, arq);
+                status = removerFilmePorId(arq, filmes, id);
                 if(status == 0) {
                     printf("Filme não foi removido\n");
                     printf("Erro\n");
@@ -234,7 +256,7 @@ void mostrarCatalogo(struct Filmes f[]) {
     int i;
     int j = 0;
     for(i = 0; i < FILMES_FAV; i += 1) {
-        if(f[i].id < FILMES_FAV) {
+        if(f[i].id != 99) {
         printf("FILME %d\n", i + 1);
         printf("Nome: %s\n", f[i].titulo);
         printf("Descricao: %s\n", f[i].descricao);
@@ -374,6 +396,21 @@ void preencherFilme(struct Filmes *f) {
     lerStr(temp, 10);
 }
 
+void ordenarCatalogo(struct Filmes f[]) {
+    struct Filmes temp;
+
+    // Mantem os filmes em ordem crescente de ID e os vazios no final
+    for (int i = 0; i < FILMES_FAV - 1; i++) {
+        for (int j = i + 1; j < FILMES_FAV; j++) {
+            if (f[j].id != 99 && (f[i].id == 99 || f[j].id < f[i].id)) {
+                temp = f[i];
+                f[i] = f[j];
+                f[j] = temp;
+            }
+        }
+    }
+}
+
 int removerFilmePorId(FILE *arq, struct Filmes f[], int id) {
 
     int pos = -1;
@@ -386,8 +423,8 @@ int removerFilmePorId(FILE *arq, struct Filmes f[], int id) {
         }
     }
 
-    // 2. Verificar se encontrou
-    if (pos == -1) {
+    // 2. Verificar se encontrou (99 representa uma posicao vazia)
+    if (pos == -1 || id == 99) {
         printf("Filme nao encontrado!\n");
         return 0;
     }
@@ -400,6 +437,9 @@ int removerFilmePorId(FILE *arq, struct Filmes f[], int id) {
     // 4. Limpar a última posição
     memset(&f[FILMES_FAV - 1], 0, sizeof(struct Filmes));
     f[FILMES_FAV - 1].id = 99;
+
+    // Deixar os filmes em ordem crescente de ID
+    ordenarCatalogo(f);
 
     // 5. Atualizar o arquivo binário
     rewind(arq);
@@ -420,8 +460,6 @@ int removerFilmePorId(FILE *arq, struct Filmes f[], int id) {
     for (int i = 0; i < FILMES_FAV; i++) {
         printf("Posicao %d: ID %d\n", i, f[i].id);
     }
-
-    printf("\nFilme removido com sucesso!\n");
 
     return 1;
 }
