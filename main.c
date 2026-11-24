@@ -375,9 +375,10 @@ void preencherFilme(struct Filmes *f) {
 }
 
 int removerFilmePorId(FILE *arq, struct Filmes f[], int id) {
+
     int pos = -1;
 
-    // 1. Procurar a posição do filme
+    // 1. Procurar o filme pelo ID
     for (int i = 0; i < FILMES_FAV; i++) {
         if (f[i].id == id) {
             pos = i;
@@ -410,9 +411,17 @@ int removerFilmePorId(FILE *arq, struct Filmes f[], int id) {
         return 0;
     }
 
+    // 6. Garantir que os dados sejam gravados
     fflush(arq);
 
-    printf("Filme removido com sucesso!\n");
+    // 7. Mostrar o vetor atualizado
+    printf("\nFilmes apos remocao:\n");
+
+    for (int i = 0; i < FILMES_FAV; i++) {
+        printf("Posicao %d: ID %d\n", i, f[i].id);
+    }
+
+    printf("\nFilme removido com sucesso!\n");
 
     return 1;
 }
